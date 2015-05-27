@@ -11,9 +11,9 @@ Control is over wifi.
 * preset scenes e.g. RGB data preloaded to file system.  But with synchonization points during performance.
 * and/or scenes RGB data sent during performance, e.g. Jinx or Glediator etc.
 * 
-Protocols
-* Industry std e.g. TPM2.net
-* Home-grown e.g. MQTT
-* Ad/hoc e.g. web page for simple P.O.C.
-* 
+Protocols:
+ * Industry std e.g. TPM2.net (patch 30/30 "wings"  180->91, 1->90)
+ * Home-grown e.g. MQTT
+ * Ad/hoc e.g. web page for simple P.O.C.
+ *
 
