@@ -31,7 +31,7 @@ public:
 	virtual ~LedWS2812();
 
 	void start();
-	void stop(bool delay = false);
+	void stop(bool delay = true);
 	void sendPixel(uint8_t red, uint8_t grn, uint8_t blu);
 	void sendByte(uint8_t byt);
 };
