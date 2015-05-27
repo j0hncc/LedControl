@@ -137,18 +137,34 @@ void tpm2Recv( char * buff, int len)
 		writeBuffOnLed( buff, len, stripA);
 
 }
+void connectOk()
+{
+	debugf("I'm CONNECTED");
+	Serial.println(WifiStation.getIP().toString());
+	tpm2net_init( tpm2Recv);
+}
+void connectFail()
+{
+	debugf("I'm NOT CONNECTED!");
+	WifiStation.waitConnection(connectOk, 10, connectFail); // Repeat and check again
+}
 
 void init() {
 	Serial.begin(115200);
 	Serial.println("Begin");
+	WifiAccessPoint.enable( false);
+	WifiStation.enable( true);
+	WifiStation.config("ssid", "password");
+
 	//checkFile();
 	Serial.print("Buff1: ");
 	Serial.println(sizeof(buffer1));
 	Serial.print("Heap: ");
 	Serial.println(system_get_free_heap_size());
-	tpm2net_init( tpm2Recv);
 
-	prT.initializeMs(1000, prCount).start();
+	//prT.initializeMs(1000, prCount).start();
 	// ledT.initializeUs(600, walk).startOnce();
+
+	WifiStation.waitConnection(connectOk, 30, connectFail); // We recommend 20+ seconds at start
 
 }
