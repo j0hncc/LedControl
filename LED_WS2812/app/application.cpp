@@ -1,8 +1,7 @@
 #include <user_config.h>
 #include <SmingCore/SmingCore.h>
 #include "LedWS2812.h"
-//#include <eagle_soc.h>
-//#include <c_types.h>
+#include "tpm2net.h"
 
 LedWS2812 stripA( 4), stripB( 5) ;  // gpio4, gpio5
 
@@ -126,6 +125,19 @@ void checkFile()
 
 }
 
+void tpm2Recv( char * buff, int len)
+{
+	// first 30 go to stripA, 2nd 30 to stripB
+	if (len > 90)
+	{
+		writeBuffOnLed( buff, 90, stripA);
+		writeBuffOnLed( buff+90 , len - 90, stripB);
+	}
+	else
+		writeBuffOnLed( buff, len, stripA);
+
+}
+
 void init() {
 	Serial.begin(115200);
 	Serial.println("Begin");
@@ -134,8 +146,9 @@ void init() {
 	Serial.println(sizeof(buffer1));
 	Serial.print("Heap: ");
 	Serial.println(system_get_free_heap_size());
+	tpm2net_init( tpm2Recv);
 
 	prT.initializeMs(1000, prCount).start();
-	ledT.initializeUs(600, walk).startOnce();
+	// ledT.initializeUs(600, walk).startOnce();
 
 }
