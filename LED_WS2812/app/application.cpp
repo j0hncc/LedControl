@@ -4,97 +4,93 @@
 //#include <eagle_soc.h>
 //#include <c_types.h>
 
-#define LED_PIN 5 // GPIO0
-
-LedWS2812 strip1( LED_PIN);
+LedWS2812 stripA( 4), stripB( 5) ;  // gpio4, gpio5
 
 Timer ledT;
 bool which = false;
 //char buffer1[18] = "\x00\x40\x00\x40\x00\x00\x00\x00\x40\x00\x40\x00\x40\x00\x00\x00\x00\x40";
 //char buffer2[18] = "\x00\x40\x00\x40\x00\x00\x00\x00\x40\x00\x40\x00\x40\x00\x00\x00\x00\x40";
 
-char buffer1[270] = { 0x40, 0, 0, 0, 0x40, 0, 0, 0, 0x40, 0x40, 0, 0, 0, 0x40,
-		0, 0, 0, 0x40 };
-char buffer2[90] = { 0x40, 0, 0, 0, 0x40, 0, 0, 0, 0x40, 0x40, 0, 0, 0, 0x40, 0,
-		0, 0, 0x40 };
+char buffer1[40*3] = { 0x40, 0, 0,   0, 0x40, 0,   0, 0, 0x40,   0x40, 0, 0,   0, 0x40, 0,   0, 0, 0x40 };
+char buffer2[40*3] = { 0x40, 0x40, 0,   0x40, 0x40, 0,   0, 0x40, 0x40,   0, 0x40, 0x40,   0, 0x40, 0,   0, 0, 0x40 };
+
+void writeBuffOnLed( char * buf, int len, LedWS2812 & strip)
+{
+	strip.start();
+	for (int i = 0; i < len; i += 3)
+		strip.sendPixel(buf[i], buf[i + 1], buf[i + 2]);
+	strip.stop(false);
+}
+
 
 void toggle() {
 	char * buffer;
-	digitalWrite(4, which);
 
 	if (which)
 		buffer = buffer1;
 	else
 		buffer = buffer2;
 
-	//ws2812_writergb(LED_PIN, buffer, sizeof(buffer1));
-
-	strip1.start();
-	for (int i = 0; i < sizeof(buffer1); i += 3)
-		strip1.sendPixel(buffer[i], buffer[i + 1], buffer[i + 2]);
-	strip1.stop();
+	writeBuffOnLed( buffer, sizeof(buffer1), stripA);
 
 	which = !which;
-
 }
 
-int count = 0;
+int framecount = 0;
 
-void walk() {
-	digitalWrite(4, which);
-	which = !which;
+
+void rotateBuff( char * buffer, int len) {
 	int i = 0;
 	char saved[3];
-	saved[i] = buffer1[i];
+	saved[i] = buffer[i];
 	i++;
-	saved[i] = buffer1[i];
+	saved[i] = buffer[i];
 	i++;
-	saved[i] = buffer1[i];
+	saved[i] = buffer[i];
 	i++;
 
 	i = 0;
-	for (int maxx = sizeof(buffer1) - 3; i < maxx;) {
-		buffer1[i] = buffer1[i + 3];
+	for (int maxx = len - 3; i < maxx;) {
+		buffer[i] = buffer[i + 3];
 		i++;
-		buffer1[i] = buffer1[i + 3];
+		buffer[i] = buffer[i + 3];
 		i++;
-		buffer1[i] = buffer1[i + 3];
+		buffer[i] = buffer[i + 3];
 		i++;
 	}
 
-	buffer1[i] = saved[0];
+	buffer[i] = saved[0];
 	i++;
-	buffer1[i] = saved[1];
+	buffer[i] = saved[1];
 	i++;
-	buffer1[i] = saved[2];
+	buffer[i] = saved[2];
 	i++;
-
-	//ws2812_writergb(LED_PIN, buffer1, sizeof(buffer1));
-
-	char * buffer = buffer1;
-	strip1.start();
-	for (int ix = 0; ix < sizeof(buffer1); ix += 3)
-		strip1.sendPixel(buffer[ix], buffer[ix + 1], buffer[ix + 2]);
-	strip1.stop();
-
-	count++;
-	/*
-	 if ( count >= 100)
-	 {
-	 Serial.println(millis());
-	 count=0;
-	 }
-	 */
-	ledT.startOnce();
 }
 
-Timer prT;
-void prCount() {
-	Serial.println(count);
+void walk()
+{
+	rotateBuff( buffer1, sizeof(buffer1));
+	writeBuffOnLed( buffer1, sizeof(buffer1), stripA);
+	rotateBuff( buffer2, sizeof(buffer2));
+	writeBuffOnLed( buffer2, sizeof(buffer2), stripB);
+	framecount++;
+	ledT.startOnce();
+
 }
 
 #define PR(x) Serial.print(x);
 #define PL(x) Serial.println(x);
+
+Timer prT;
+void prCount() {
+	static int last=0;
+	PR( framecount - last);
+	last=framecount;
+
+	PR( " , ");
+	PL(framecount);
+}
+
 
 struct bmph_t {
 	union {
@@ -114,19 +110,9 @@ struct bmph_t {
 void checkFile()
 {
 	char * p;
-	//struct { uint16_t bm; uint32_t size, resrvd, startpix, hdrsiz, w, h; } my;
 
 	FileStream f("flag.bmp");
 	f.getDataPointer( &p);
-	/*
-	os_memcpy( &bmph, p, sizeof(bmph));
-	for (int i=0; i< sizeof(bmph.raw) ; i++)
-		Serial.println( int (bmph.raw[i]) , HEX);
-	PR( "BM: "); PL( bmph.BM);
-	PR( "size: "); PL( bmph.size);
-	PR( "startpix: "); PL( bmph.startpix);
-	PR( "width: "); PL( bmph.w);
-	*/
 	f.seek(0x00); f.getDataPointer( &p); os_memcpy( &bmph.BM, p, 2);
 	f.seek(0x02); f.getDataPointer( &p); os_memcpy( &bmph.size, p, 28);
 	PR( "BM: "); PL( bmph.BM);
@@ -141,17 +127,15 @@ void checkFile()
 }
 
 void init() {
-	pinMode(LED_PIN, OUTPUT);
-	pinMode(4, OUTPUT);
 	Serial.begin(115200);
 	Serial.println("Begin");
-	checkFile();
+	//checkFile();
 	Serial.print("Buff1: ");
 	Serial.println(sizeof(buffer1));
 	Serial.print("Heap: ");
 	Serial.println(system_get_free_heap_size());
 
 	prT.initializeMs(1000, prCount).start();
-	ledT.initializeUs(500, walk).startOnce();
+	ledT.initializeUs(600, walk).startOnce();
 
 }
